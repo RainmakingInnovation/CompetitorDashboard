@@ -411,111 +411,112 @@
 
       var spinner = new Spinner(opts).spin(target);
 
-      d3.csv("Rainmaking Competitor Analysis - Competitor Analysis.csv").then(
-        function (data) {
-          console.log("data", data);
+      d3.csv(
+        "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOtBmEStrDgl8eVv85X8OVof1no9tOiOO0EUoOOpjvfv5rdDjSYpib-q04kIWbgJhZPHXZaI8fPnC4/pub?gid=0&single=true&output=csv"
+      ).then(function (data) {
+        console.log("data", data);
 
-          var transform = d3.geoTransform({ point: projectPoint }),
-            path = d3.geoPath().projection(transform);
+        var transform = d3.geoTransform({ point: projectPoint }),
+          path = d3.geoPath().projection(transform);
 
-          var map = new L.Map("map", {
-            center: [20, 0],
-            zoom: 2,
-            minZoom: 2,
-            maxZoom: 6,
-          }).addLayer(
-            new L.TileLayer(
-              "https://api.mapbox.com/styles/v1/mapbox/light-v10/tiles/{z}/{x}/{y}?access_token=" +
-                accessToken,
-              {
-                attribution:
-                  '© <a href="https://apps.mapbox.com/feedback/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-              }
-            )
-          );
+        var map = new L.Map("map", {
+          center: [20, 0],
+          zoom: 2,
+          minZoom: 2,
+          maxZoom: 6,
+        }).addLayer(
+          new L.TileLayer(
+            "https://api.mapbox.com/styles/v1/mapbox/light-v10/tiles/{z}/{x}/{y}?access_token=" +
+              accessToken,
+            {
+              attribution:
+                '© <a href="https://apps.mapbox.com/feedback/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            }
+          )
+        );
 
-          map.on("zoom", reset);
+        map.on("zoom", reset);
 
-          /* Initialize the SVG layer */
-          var svgLayer = L.svg();
-          svgLayer.addTo(map);
+        /* Initialize the SVG layer */
+        var svgLayer = L.svg();
+        svgLayer.addTo(map);
 
-          var geocoder = L.mapbox.geocoder("mapbox.places");
+        var geocoder = L.mapbox.geocoder("mapbox.places");
 
-          var svg = d3.select("#map").select("svg");
-          var g = d3.select("#map").select("svg").select("g");
-          g.attr("class", "leaflet-zoom-hide");
+        var svg = d3.select("#map").select("svg");
+        var g = d3.select("#map").select("svg").select("g");
+        g.attr("class", "leaflet-zoom-hide");
 
-          var startupByHQ = d3
-            .nest()
-            .key(function (d) {
-              return d["HQ"];
-            })
-            .entries(data);
+        var startupByHQ = d3
+          .nest()
+          .key(function (d) {
+            return d["HQ"];
+          })
+          .entries(data);
 
-          console.log("startupByHQ", startupByHQ);
+        console.log("startupByHQ", startupByHQ);
 
-          var q = d3.queue();
+        var q = d3.queue();
 
-          startupByHQ
-            .filter(function (v) {
-              return v.key != "";
-            })
-            .forEach(function (d) {
-              q.defer(getLocation2, d);
-            });
-
-          function getLocation2(data, callback) {
-            geocoder.query(data.key, function (error, point) {
-              data.location = point.latlng;
-            });
-            callback(null);
-          }
-
-          function initMap() {
-            d3.select(".leaflet-zoom-hide")
-              .selectAll(".hq-points")
-              .data(
-                startupByHQ.filter(function (v) {
-                  return v.key != "";
-                })
-              )
-              .enter()
-              .append("circle")
-              .attr("class", "hq-points")
-              .attr("r", 5)
-              .attr("cx", function (d) {
-                return map.latLngToLayerPoint(d.location).x;
-              })
-              .attr("cy", function (d) {
-                return map.latLngToLayerPoint(d.location).y;
-              })
-              .attr("fill", "red");
-          }
-
-          function reset() {
-            d3.selectAll(".hq-points")
-              .attr("cx", function (d) {
-                return map.latLngToLayerPoint(d.location).x;
-              })
-              .attr("cy", function (d) {
-                return map.latLngToLayerPoint(d.location).y;
-              });
-          }
-
-          spinner.stop();
-
-          //q.defer(getLocation);
-          q.awaitAll(function (error) {
-            if (error) throw error;
-            setTimeout(function () {
-              console.log(startupByHQ[0]);
-              initMap();
-            }, 2000);
+        startupByHQ
+          .filter(function (v) {
+            return v.key != "";
+          })
+          .forEach(function (d) {
+            q.defer(getLocation2, d);
           });
 
-          //test
-          /* d3.select(".startup-logo-container")
+        function getLocation2(data, callback) {
+          geocoder.query(data.key, function (error, point) {
+            data.location = point.latlng;
+          });
+          callback(null);
+        }
+
+        function initMap() {
+          d3.select(".leaflet-zoom-hide")
+            .selectAll(".hq-points")
+            .data(
+              startupByHQ.filter(function (v) {
+                return v.key != "";
+              })
+            )
+            .enter()
+            .append("circle")
+            .attr("class", "hq-points")
+            .attr("r", 5)
+            .attr("cx", function (d) {
+              return map.latLngToLayerPoint(d.location).x;
+            })
+            .attr("cy", function (d) {
+              return map.latLngToLayerPoint(d.location).y;
+            })
+            .attr("fill", "red");
+        }
+
+        function reset() {
+          d3.selectAll(".hq-points")
+            .attr("cx", function (d) {
+              return map.latLngToLayerPoint(d.location).x;
+            })
+            .attr("cy", function (d) {
+              return map.latLngToLayerPoint(d.location).y;
+            });
+        }
+
+        spinner.stop();
+
+        //q.defer(getLocation);
+        q.awaitAll(function (error) {
+          if (error) throw error;
+          setTimeout(function () {
+            console.log(startupByHQ[0]);
+            initMap();
+          }, 2000);
+        });
+
+        //test
+        /* d3.select(".startup-logo-container")
             .append("img")
             .attr("src", data[0]["Logo (source)"])
             .attr("class", "startup-logo");
@@ -523,30 +524,29 @@
           d3.select(".startup-title").html(data[0]["Name"]);
           d3.select(".startup-one-liner").html(data[0]["One Liner"]);*/
 
-          data.forEach(function (u) {
-            var profile = d3
-              .select("tbody")
-              .append("tr")
-              .attr("class", "startup-profile");
+        data.forEach(function (u) {
+          var profile = d3
+            .select("tbody")
+            .append("tr")
+            .attr("class", "startup-profile");
 
-            profile
-              .append("td")
-              .attr("class", "startup-logo-container")
-              .append("img")
-              .attr("src", u["Logo (source)"])
-              .attr("class", "startup-logo");
+          profile
+            .append("td")
+            .attr("class", "startup-logo-container")
+            .append("img")
+            .attr("src", u["Logo (source)"])
+            .attr("class", "startup-logo");
 
-            var info = profile.append("td").attr("class", "startup-info");
+          var info = profile.append("td").attr("class", "startup-info");
 
-            info.append("div").attr("class", "startup-title").html(u["Name"]);
+          info.append("div").attr("class", "startup-title").html(u["Name"]);
 
-            info
-              .append("div")
-              .attr("class", "startup-one-liner")
-              .html(u["One Liner"]);
-          });
-        }
-      );
+          info
+            .append("div")
+            .attr("class", "startup-one-liner")
+            .html(u["One Liner"]);
+        });
+      });
 
       function projectPoint(x, y) {
         var point = map.latLngToLayerPoint(new L.LatLng(y, x));
