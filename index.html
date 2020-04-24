@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Competitor Dashboard</title>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.5/leaflet.js"></script>
+    <script src="https://api.mapbox.com/mapbox.js/v3.3.0/mapbox.js"></script>
+    <script src="https://d3js.org/d3-queue.v3.min.js"></script>
+    <link
+      href="https://api.mapbox.com/mapbox.js/v3.2.1/mapbox.css"
+      rel="stylesheet"
+      crossorigin="anonymous"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/spin.js/2.0.1/spin.min.js"></script>
+    <script
+      src="https://kit.fontawesome.com/ea2379d57d.js"
+      crossorigin="anonymous"
+    ></script>
+    <link rel="icon" href="assets/favicon.ico" />
+    <style type="text/css">
+      body {
+        display: grid;
+        grid-template-columns: 146px 630px 724px;
+        grid-template-rows: 400px 400px;
+        grid-gap: 0.1em;
+        margin: auto;
+        background-color: #e9e9e9;
+      }
+
+      #profiles-container {
+        grid-column: 2 / span 1;
+        grid-row: 1 / span 2;
+        overflow-y: auto;
+      }
+
+      #landscape-container {
+        grid-column: 3 / span 1;
+        grid-row: 1 / span 1;
+        overflow: hidden;
+      }
+
+      #map {
+        grid-column: 3 / span 1;
+        grid-row: 2 / span 1;
+        overflow: hidden;
+        margin: 20px;
+        box-shadow: 0 4px 12px 0px rgba(0, 0, 0, 0.1);
+      }
+
+      #map:hover {
+        box-shadow: 0 4px 12px 0px rgba(0, 0, 0, 0.25);
+      }
+
+      @font-face {
+        font-family: "Graphik Regular";
+        font-style: normal;
+        font-weight: normal;
+        src: local("Graphik Regular"), url("GraphikRegular.woff") format("woff");
+      }
+
+      @font-face {
+        font-family: "Graphik Bold";
+        font-style: normal;
+        font-weight: bold;
+        src: local("Graphik Bold"), url("GraphikBold.woff") format("woff");
+      }
+
+      .left-sidebar {
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        position: fixed;
+        width: 146px;
+        height: 100vh;
+        left: 0px;
+        top: 0px;
+        background-color: #000000;
+        border-right: 2px solid #454545;
+        font-family: "Graphik Bold";
+        vertical-align: middle;
+        text-align: center;
+        text-anchor: middle;
+      }
+
+      .left-sidebar-header {
+        width: 100%;
+        height: 96px;
+        display: flex;
+        position: relative;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .compass-title {
+        font-size: 12px;
+        width: 96px;
+        text-align: center;
+        color: #787878;
+        margin: auto;
+      }
+
+      .left-sidebar-header img {
+        width: 40px;
+        height: 40px;
+        object-fit: contain;
+      }
+
+      .left-sidebar-buttons {
+        top: 25%;
+        position: relative;
+      }
+
+      .left-sidebar-btn {
+        font-size: 18px;
+        width: 96px;
+        cursor: pointer;
+        height: 96px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column-reverse;
+        color: #787878;
+        margin: auto;
+      }
+
+      .left-sidebar-btn > i {
+        border: 0px;
+      }
+
+      .left-sidebar-btn-label {
+        margin-top: 5px;
+        font-size: 10px;
+      }
+
+      .left-sidebar-btn.active {
+        color: #dddddd;
+      }
+
+      .popup-bg {
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        z-index: 9999;
+        position: fixed;
+        top: 0px;
+        left: 0px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: rgba(0, 0, 0, 0.4);
+      }
+
+      .popup-container {
+        opacity: 1;
+        bottom: 300%;
+        border-top-left-radius: 30px;
+        border-top-right-radius: 30px;
+        width: 92vw;
+        height: 92%;
+        position: absolute;
+        z-index: 33333;
+        background: white;
+        padding-top: 30px;
+        align-items: center;
+        justify-content: center;
+        overflow: scroll;
+      }
+
+      .popup-container.added {
+        bottom: 0px;
+      }
+
+      .popup-close {
+        position: relative;
+        top: -20px;
+        left: 87.4vw;
+        font-size: 22px;
+        display: inline;
+        cursor: pointer;
+        align-items: center;
+        justify-content: center;
+        color: #36363c;
+      }
+
+      .popup-section-a:after {
+        content: "";
+        display: table;
+        clear: both;
+      }
+
+      .hero-startup {
+        margin-bottom: 15px;
+        color: #36363c;
+      }
+
+      .hero-startup-container {
+        padding: 10px;
+        height: 150px;
+      }
+
+      .hero-startup-number {
+        float: left;
+        color: #36363c;
+        font-size: 20px;
+        font-family: "Graphik Bold";
+        border-radius: 30px;
+        background-color: #e6e6e6;
+        text-align: center;
+        width: 1.6em;
+        margin-right: 15px;
+        line-height: 1.6em;
+      }
+
+      .fl {
+        float: left;
+      }
+
+      .hero-startup-logo-container {
+        display: table-cell;
+        padding: 5px;
+        padding-top: 0px;
+        padding-bottom: 0px;
+        max-width: 140px;
+        text-align: center;
+        vertical-align: middle;
+      }
+
+      .hero-startup-logo {
+        margin: auto;
+        width: 110px;
+      }
+
+      .hero-startup-desc {
+        float: left;
+        width: 60%;
+        font-family: "Graphik Regular";
+        font-size: 12px;
+        padding: 5px;
+      }
+
+      .hero-startup-stats {
+        float: left;
+        width: 25%;
+        font-family: "Graphik Regular";
+        font-size: 12px;
+        padding: 5px;
+        margin-bottom: 20px;
+      }
+
+      .hero-startup-desc-overview {
+        margin-bottom: 5px;
+      }
+
+      .hero-startup-desc-problem {
+        margin-bottom: 5px;
+      }
+
+      .hero-startup-stats-website {
+        margin-bottom: 5px;
+      }
+
+      .hero-startup-stats-location {
+        margin-bottom: 5px;
+      }
+
+      .hero-startup-stats-round {
+        margin-bottom: 5px;
+      }
+
+      .hero-startup-stats-amount {
+        margin-bottom: 5px;
+      }
+
+      .submit-button {
+        position: fixed;
+        bottom: 10px;
+        left: 18px;
+        background-color: grey;
+        font-size: 16px;
+        font-family: "Graphik Bold";
+        width: 100px;
+        border-radius: 2px;
+        padding: 5px;
+        text-align: center;
+        margin: auto;
+        cursor: pointer;
+        opacity: 0.8;
+      }
+
+      .submit-button:hover {
+        opacity: 1;
+      }
+
+      .hq-points {
+        stroke: black;
+        stroke-width: 2px;
+        opacity: 0.8;
+      }
+
+      table {
+        display: table;
+        border-collapse: separate;
+        border-spacing: 0 30px;
+        border-color: white;
+        margin: auto;
+        top: 200px;
+        left: 30px;
+        position: relative;
+        width: 460px;
+      }
+
+      tbody {
+        display: table-row-group;
+        vertical-align: middle;
+        border-color: inherit;
+        margin-bottom: 100px;
+      }
+
+      tr {
+        display: table-row;
+        vertical-align: inherit;
+        border-color: inherit;
+      }
+
+      .startup-profile {
+        padding: 10px;
+        height: 120px;
+        background-color: white;
+        box-shadow: 0 4px 12px 0px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+      }
+
+      .startup-profile:hover {
+        box-shadow: 0 4px 12px 0px rgba(0, 0, 0, 0.25);
+      }
+
+      .startup-logo-container {
+        display: table-cell;
+        padding: 5px;
+        padding-top: 0px;
+        padding-bottom: 0px;
+        max-width: 120px;
+        text-align: center;
+        vertical-align: middle;
+      }
+
+      .startup-logo {
+        margin: auto;
+        width: 110px;
+      }
+
+      .startup-info {
+        font-family: "Graphik Regular";
+        font-size: 12px;
+        vertical-align: middle;
+        padding-top: 0px;
+        padding-bottom: 0px;
+      }
+
+      .startup-title {
+        font-family: "Graphik Bold";
+        margin-bottom: 5px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="left-sidebar">
+      <div class="left-sidebar-header">
+        <img src="assets/logo-.png" />
+      </div>
+
+      <div class="left-sidebar-buttons">
+        <div class="submit-button">submit</div>
+      </div>
+    </div>
+
+    <div id="profiles-container">
+      <table>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div id="landscape-container"></div>
+    <div id="map"></div>
+
+    <script>
+      var width = 800,
+        height = 860;
+
+      // mapbox access token
+      const accessToken =
+        "pk.eyJ1Ijoid2F5ZGVoZXJtYW4iLCJhIjoiY2s5ZGtvMXpoMDRjajNscWcwMm9pZnR5ayJ9.ZwyeZ2ykn8jZac12i4FEqA";
+
+      L.mapbox.accessToken = accessToken;
+      // loader settings
+      var opts = {
+        lines: 9, // The number of lines to draw
+        length: 7, // The length of each line
+        width: 8, // The line thickness
+        radius: 24, // The radius of the inner circle
+        top: "57%",
+        left: "38.5%",
+        color: "#132A54", // #rgb or #rrggbb or array of colors
+        speed: 1.9, // Rounds per second
+        trail: 40, // Afterglow percentage
+        className: "spinner", // The CSS class to assign to the spinner
+      };
+
+      var target = document.getElementById("chart-container");
+
+      var spinner = new Spinner(opts).spin(target);
+
+      d3.csv("Rainmaking Competitor Analysis - Competitor Analysis.csv").then(
+        function (data) {
+          console.log("data", data);
+
+          var transform = d3.geoTransform({ point: projectPoint }),
+            path = d3.geoPath().projection(transform);
+
+          var map = new L.Map("map", {
+            center: [20, 0],
+            zoom: 2,
+            minZoom: 2,
+            maxZoom: 6,
+          }).addLayer(
+            new L.TileLayer(
+              "https://api.mapbox.com/styles/v1/mapbox/light-v10/tiles/{z}/{x}/{y}?access_token=" +
+                accessToken,
+              {
+                attribution:
+                  '© <a href="https://apps.mapbox.com/feedback/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+              }
+            )
+          );
+
+          map.on("zoom", reset);
+
+          /* Initialize the SVG layer */
+          var svgLayer = L.svg();
+          svgLayer.addTo(map);
+
+          var geocoder = L.mapbox.geocoder("mapbox.places");
+
+          var svg = d3.select("#map").select("svg");
+          var g = d3.select("#map").select("svg").select("g");
+          g.attr("class", "leaflet-zoom-hide");
+
+          var startupByHQ = d3
+            .nest()
+            .key(function (d) {
+              return d["HQ"];
+            })
+            .entries(data);
+
+          console.log("startupByHQ", startupByHQ);
+
+          var q = d3.queue();
+
+          startupByHQ
+            .filter(function (v) {
+              return v.key != "";
+            })
+            .forEach(function (d) {
+              q.defer(getLocation2, d);
+            });
+
+          function getLocation2(data, callback) {
+            geocoder.query(data.key, function (error, point) {
+              data.location = point.latlng;
+            });
+            callback(null);
+          }
+
+          function initMap() {
+            d3.select(".leaflet-zoom-hide")
+              .selectAll(".hq-points")
+              .data(
+                startupByHQ.filter(function (v) {
+                  return v.key != "";
+                })
+              )
+              .enter()
+              .append("circle")
+              .attr("class", "hq-points")
+              .attr("r", 5)
+              .attr("cx", function (d) {
+                return map.latLngToLayerPoint(d.location).x;
+              })
+              .attr("cy", function (d) {
+                return map.latLngToLayerPoint(d.location).y;
+              })
+              .attr("fill", "red");
+          }
+
+          function reset() {
+            d3.selectAll(".hq-points")
+              .attr("cx", function (d) {
+                return map.latLngToLayerPoint(d.location).x;
+              })
+              .attr("cy", function (d) {
+                return map.latLngToLayerPoint(d.location).y;
+              });
+          }
+
+          spinner.stop();
+
+          //q.defer(getLocation);
+          q.awaitAll(function (error) {
+            if (error) throw error;
+            setTimeout(function () {
+              console.log(startupByHQ[0]);
+              initMap();
+            }, 2000);
+          });
+
+          //test
+          /* d3.select(".startup-logo-container")
+            .append("img")
+            .attr("src", data[0]["Logo (source)"])
+            .attr("class", "startup-logo");
+
+          d3.select(".startup-title").html(data[0]["Name"]);
+          d3.select(".startup-one-liner").html(data[0]["One Liner"]);*/
+
+          data.forEach(function (u) {
+            var profile = d3
+              .select("tbody")
+              .append("tr")
+              .attr("class", "startup-profile");
+
+            profile
+              .append("td")
+              .attr("class", "startup-logo-container")
+              .append("img")
+              .attr("src", u["Logo (source)"])
+              .attr("class", "startup-logo");
+
+            var info = profile.append("td").attr("class", "startup-info");
+
+            info.append("div").attr("class", "startup-title").html(u["Name"]);
+
+            info
+              .append("div")
+              .attr("class", "startup-one-liner")
+              .html(u["One Liner"]);
+          });
+        }
+      );
+
+      function projectPoint(x, y) {
+        var point = map.latLngToLayerPoint(new L.LatLng(y, x));
+        this.stream.point(point.x, point.y);
+      }
+    </script>
+  </body>
+</html>
